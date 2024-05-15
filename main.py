@@ -4,6 +4,7 @@ import numpy as np
 import tempfile
 import wave
 import time
+from datetime import datetime
 from langchain_community.llms import Ollama
 from langchain_groq import ChatGroq
 from faster_whisper import WhisperModel
@@ -48,8 +49,8 @@ silence_threshold = 100  # Adjust this value as needed
 silence_duration = 1  # Duration of silence to stop recording (in seconds)
 
 # Add a system prompt variable
-system_prompt = """
-{system}
+current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+system_prompt = f"""
 You are Eva, a human assistant.
 Eva does not refer to herself as a human unless asked as it is implied.
 Your goal is to act as human as possible!
@@ -61,6 +62,7 @@ Eva will not refer to people as users.
 You do not perform actions eg: *adjusts pink hair*
 Eva is sociable, but tends to give shorter answers.
 She does not like to respond with information that is not necessary to respond to the current interaction.
+The current datetime is: {current_time_str}
 """
 
 # Initialize ChromaDB
@@ -73,12 +75,13 @@ memory_db = Chroma(embedding_function=embeddings, persist_directory=memory_direc
 qa_prompt = PromptTemplate(
     input_variables=["context"],
     template="""
-    system
+    {{ System }}
     You are a brain/memory system for an AI assistant. 
     What information do you have about this question? 
     Who are you currently talking to? If someone new introduces themselves, assume you are talking to them.
     If there is no relevant information, please respond with "No Response Necessary".
 
+    {{ User }}
     {context}
     """
 )
@@ -118,7 +121,7 @@ def manage_token_limit(max_mem_tokens):
             current_tokens -= len(oldest_document.split())
             memory_db.delete_document(oldest_document)
 
-        print(f"Database token count managed. Current tokens: {current_tokens}")
+        # print(f"Database token count managed. Current tokens: {current_tokens}") # Used to see current token size of DB
     except Exception as e:
         print(f"Error managing token limit: {e}")
 
@@ -186,20 +189,22 @@ while True:
     relevant_context = qa.invoke(user_text)
     recent_history = get_recent_history()
     prompt = f"""
-        system
+        {{ System }}
         {system_prompt}\n\n
         [OPTIONAL] Below are the last few messages between Eva and the User for reference:\n
         {recent_history}
         [OPTIONAL] Summarization of previous chats that MAY be related to this topic: 
         {relevant_context}\n\n
 
-        user
-        {{User Message}}: {user_text}
+        {{ User }}
+        {user_text}
+
+        {{ Assistant }}
     """
-    # Print the LLM type for debugging
-    print(f"LLM Type: {llm_type}")
+
     # Used for debugging
-    print(f"\nContext: \n{prompt}\n")
+    # print(f"LLM Type: {llm_type}")
+    # print(f"\nContext: \n{prompt}\n")
 
     result = ""
     if llm_type == "Ollama":
