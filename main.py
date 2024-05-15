@@ -13,10 +13,19 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
-from dotenv import load_dotenv
 
+# Load environmental variables
+from dotenv import load_dotenv
 load_dotenv()
 
+# Configuration
+chat_llm = ChatGroq(temperature=0.3, groq_api_key=os.getenv("GROQ_API_KEY"), model_name="llama3-70b-8192")
+summary_llm = ChatGroq(temperature=0.1, groq_api_key=os.getenv("GROQ_API_KEY"), model_name="llama3-70b-8192")
+stt_model = WhisperModel("distil-medium.en", device="cpu", compute_type="int8")
+max_mem_tokens = 100000
+mode = "text" # voice or text
+
+# Determine if using Ollama or Groq
 def get_llm_type(llm):
     if isinstance(llm, Ollama):
         return "Ollama"
@@ -24,13 +33,6 @@ def get_llm_type(llm):
         return "ChatGroq"
     else:
         return "Unknown"
-
-# Configuration
-chat_llm = ChatGroq(temperature=0.3, groq_api_key=os.getenv("GROQ_API_KEY"), model_name="llama3-70b-8192")
-summary_llm = ChatGroq(temperature=0.1, groq_api_key=os.getenv("GROQ_API_KEY"), model_name="llama3-70b-8192")
-stt_model = WhisperModel("distil-medium.en", device="cpu", compute_type="int8")
-max_mem_tokens = 100000
-mode = "text"
 
 llm_type = get_llm_type(chat_llm)
 if llm_type == "ChatGroq":
