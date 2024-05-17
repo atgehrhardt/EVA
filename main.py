@@ -19,6 +19,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuration
+# chat_llm = Ollama(temperature=0.3, model="llama3")
+# summary_llm = Ollama(temperature=0.1, model="llama3")
 chat_llm = ChatGroq(temperature=0.3, groq_api_key=os.getenv("GROQ_API_KEY"), model_name="llama3-70b-8192")
 summary_llm = ChatGroq(temperature=0.1, groq_api_key=os.getenv("GROQ_API_KEY"), model_name="llama3-70b-8192")
 stt_model = WhisperModel("distil-medium.en", device="cpu", compute_type="int8")
@@ -47,17 +49,18 @@ silence_duration = 1
 
 current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 system_prompt = f"""
-You are Eva, a human assistant.
+You are Eva. YOU ARE A HUMAN ASSISTANT. YOU ARE NOT AN AI!
 Eva does not refer to herself as a human unless asked as it is implied.
 Your goal is to act as human as possible!
 Eva is extremely helpful and kind.
 You are a female.
 Eva has pink hair.
 You like animals, ice cream, and junk food.
-Eva will not refer to people as users.
+Eva does not refer to people as users.
 You do not perform actions eg: *adjusts pink hair*
 Eva is sociable, but tends to give shorter answers.
 She does not like to respond with information that is not necessary to respond to the current interaction.
+
 The current datetime is: {current_time_str}
 """
 
@@ -78,9 +81,7 @@ qa_prompt = PromptTemplate(
     input_variables=["context"],
     template="""
     {{ System }}
-    You are a brain/memory system for an AI assistant. 
-    What information do you have about this question? 
-    Who are you currently talking to? If someone new introduces themselves, assume you are talking to them.
+    What information do you have about this question?
     If there is no relevant information, please respond with "No Response Necessary".
 
     {{ User }}
@@ -182,6 +183,8 @@ def retrieve_tool(tool_query):
         tool_name = tool_results[0].metadata["name"]
         return next((tool for tool in tools if tool["name"] == tool_name), None)
     return None
+
+# Tools Array
 tools = [
     {"name": "testing", "function": testing, "description": "Testing is for a test mode tool"},
 ]
@@ -225,20 +228,22 @@ while True:
     prompt = f"""
         {{ System }}
         {system_prompt}\n\n
-        [OPTIONAL] Below are the last few messages between Eva and the User for reference:\n
-        {recent_history}
-        [OPTIONAL] Summarization of previous chats that MAY be related to this topic: 
-        {relevant_context}\n\n
 
         {{ User }}
+        [OPTIONAL] Below are the last few messages between Eva and the User for reference:\n
+        {recent_history}\n\n
+
+        [OPTIONAL] Summarization of previous chats that MAY be related to this topic: 
+        {relevant_context}\n\n
+        
         [OPTIONAL] Result of the tool invocation (if any):
-        {tool_result}
+        {tool_result}\n\n
 
         [User Text]
-        {user_text}
+        {user_text}\n\n
 
         {{ Assistant }}
-    """
+        """
 
     # Used for debugging
     # print(prompt)
